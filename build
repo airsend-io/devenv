@@ -1,0 +1,203 @@
+#!/bin/bash
+
+# Constants
+DEFAULT_PORTS=("AIRSEND_API_EXPOSED_PORT" "AIRSEND_WEBSOCKET_PORT" "AIRSEND_DB_EXPOSED_PORT" "AIRSEND_REDIS_PORT" "AIRSEND_XDEBUG_PORT" "AIRSEND_ZOOKEEPER_PORT" "AIRSEND_KAFKA_PORT" "AIRSEND_SWAGGER_PORT")
+DOCKER_MIN_MAJOR_VERSION=19
+DOCKER_MIN_MINOR_VERSION=15
+API_REPOSITORY_SSH=git@github.com:airsend-io/api.git
+API_REPOSITORY_HTTP=https://github.com/airsend-io/api.git
+UI_REPOSITORY_SSH=git@github.com:airsend-io/ui.git
+UI_REPOSITORY_HTTP=https://github.com/airsend-io/ui.git
+NODEUTIL_REPOSITORY_SSH=git@github.com:airsend-io/nodeutil.git
+NODEUTIL_REPOSITORY_HTTP=https://github.com/airsend-io/nodeutil.git
+WEBSOCKET_REPOSITORY_SSH=git@github.com:airsend-io/websocket.git
+WEBSOCKET_REPOSITORY_HTTP=https://github.com/airsend-io/websocket.git
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+API_DIR="$SCRIPT_DIR/api"
+UI_DIR="$SCRIPT_DIR/ui"
+NODEUTIL_DIR="$SCRIPT_DIR/nodeutil"
+WEBSOCKET_DIR="$SCRIPT_DIR/websocket"
+
+# Helper functions
+title () {
+  echo ""
+  echo ">>> $1"
+}
+error () {
+  echo -e "\033[31m$1\033[0m"
+}
+
+success () {
+  echo -e "\033[32m$1\033[0m"
+}
+
+warning () {
+  echo -e "\033[33m$1\033[0m"
+}
+
+confirm () {
+  echo -n "$1 (y/N)? "
+  read RESPONSE;
+  if [ "$RESPONSE" == "Y" ] || [ "$RESPONSE" == "y" ]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+clone () {
+  NAME=$1;
+  DIR=$2;
+  REPOSITORY=$3
+
+  # ensure that the directory exists
+  mkdir -p "$DIR" &>/dev/null
+
+  # If there is a repository inside the folder, skip the cloning process.
+  if cd "$DIR" && git rev-parse --is-inside-work-tree; then
+    title "$NAME repository is already setup";
+  else
+
+    # clone the repository
+    title "Cloning the $NAME repository..."
+    git clone "$REPOSITORY" "$DIR";
+  fi
+}
+
+# default ports
+AIRSEND_API_EXPOSED_PORT=20000
+AIRSEND_WEBSOCKET_PORT=20001
+AIRSEND_DB_EXPOSED_PORT=20002
+AIRSEND_REDIS_PORT=20003
+AIRSEND_XDEBUG_PORT=20004
+AIRSEND_ZOOKEEPER_PORT=20005
+AIRSEND_KAFKA_PORT=20006
+AIRSEND_SWAGGER_PORT=20007
+#...
+
+# Load .env defined variables (overriding default ones)
+source .env
+
+# Platform specific definitions
+title "Checking your OS..."
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+  # linux...
+  success "Linux detected..."
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+  # macos...
+  success "MacOS detected..."
+else
+  error "Your system is not supported by this script. (Supported OS: Linux and MacOS";
+  exit 1;
+fi
+
+title "Checking docker installation..."
+DOCKER_VERSION_STRING=$(docker --version 2>/dev/null)
+if [ "$?" != "0" ]; then
+  error "Docker must be installed!";
+  exit 1;
+fi
+DOCKER_VERSION=$(echo $DOCKER_VERSION_STRING | awk '{print $3}')
+DOCKER_MAJOR_VERSION=$(echo $DOCKER_VERSION | awk -F. '{print $1}')
+DOCKER_MINOR_VERSION=$(echo $DOCKER_VERSION | awk -F. '{print $2}')
+if [ "$DOCKER_MAJOR_VERSION" -lt  "$DOCKER_MIN_MAJOR_VERSION" ]; then
+    error "Your docker version must be at least $DOCKER_MIN_MAJOR_VERSION.$DOCKER_MIN_MINOR_VERSION. Current version: $DOCKER_VERSION"
+    exit 1;
+fi
+success "Docker version: $DOCKER_VERSION [OK]"
+
+# Force the env to be down
+docker compose down >/dev/null 2>/dev/null
+
+# Check for used ports...
+title "Checking for required TCP ports..."
+echo "We need to run 'lsof' as root to do this check properly, so you may be ask for your password..."
+
+if [[ "$(sudo -l lsof)" != "$(which lsof)" ]]; then
+  warning "Impossible to check TCP ports availability automatically. You may not be allowed to run lsof as root."
+  warning "You can check the ports manually if you prefer."
+  confirm "Do you want to continue without validating the TCP ports"
+  if [ "$?" != "0" ]; then
+    exit 255;
+  fi
+fi
+
+PORTS_TABLE=$(sudo lsof -i -P | awk '{if($10 == "(LISTEN)") print $1,$2,$3,$9}');
+
+CONFLICTS=$'PORT\tVARIABLE\t\tUSER\t\tPROCESS\t\tPID\n';
+WC=$(echo $CONFLICTS | wc -w);
+for VAR in ${DEFAULT_PORTS[@]}; do
+  CONFLICTS+="$(echo "$PORTS_TABLE" | grep :${!VAR} | awk -v var=$VAR -v port=${!VAR} '{print port"\t"var"\t"$3"\t"$1"\t"$2}')"
+  CONFLICTS+=$'\n'
+done
+
+if [ "$(echo $CONFLICTS | wc -w)" -gt "$WC" ]; then
+  error "Some TCP ports are already in use. Please change/override them using the .env file."
+  echo "Conflicting TCP ports:"
+  echo "$CONFLICTS"
+  exit 255;
+else
+  success "All required TCP ports are available."
+fi
+
+title "To be able to clone the repos, we need to add the github public keys to your known_hosts..."
+echo "If you don't trust us, just say no, and you'll be asked to check the fingerprint manually."
+confirm "Can we add the github keys to your known_hosts file (~/.ssh/known_hosts)?"
+if [ "$?" == "0" ]; then
+  # add github keys to your known_hosts file
+  if cat ~/.ssh/known_hosts | grep "^github.com ssh-ed25519" >/dev/null; then
+    success "Fingerpring 'ssh-ed25519' is already set..."
+  else
+    warning "Adding ssh-ed25519 fingerprint..."
+    echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" >> ~/.ssh/known_hosts
+  fi
+  if cat ~/.ssh/known_hosts | grep "^github.com ecdsa-sha2-nistp256" >/dev/null; then
+    success "Fingerprint 'ecdsa-sha2-nistp256' is already set..."
+  else
+    warning "Adding ecdsa-sha2-nistp256 fingerprint..."
+    echo "github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=" >> ~/.ssh/known_hosts
+  fi
+  if cat ~/.ssh/known_hosts | grep "^github.com ssh-rsa" >/dev/null; then
+    success "Fingerprint 'ssh-rsa' is already set..."
+  else
+    warning "Adding ssh-rsa fingerprint..."
+    echo "github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==" >> ~/.ssh/known_hosts
+  fi
+fi
+
+title "Checking github.com ssh config (you may have to enter your private key password to unlock it)..."
+
+if ssh -T git@github.com 2>&1 | grep "You've successfully authenticated" > /dev/null; then
+  echo "Cloning using ssh (best option)..."
+  API_REPOSITORY=$API_REPOSITORY_SSH;
+  UI_REPOSITORY=$UI_REPOSITORY_SSH;
+  NODEUTIL_REPOSITORY=$NODEUTIL_REPOSITORY_SSH;
+  WEBSOCKET_REPOSITORY=$WEBSOCKET_REPOSITORY_SSH;
+else
+  warning "We can't validate your ssh access to github. It's recommended to use ssh to clone the repositories."
+  warning "We can try the https clone, but it's slower and not recommended."
+  confirm "Do you want to go forward with https?"
+  if [ "$?" != "0" ]; then
+    exit 255;
+  fi
+  API_REPOSITORY=$API_REPOSITORY_HTTP;
+  UI_REPOSITORY=$UI_REPOSITORY_HTTP;
+  NODEUTIL_REPOSITORY=$NODEUTIL_REPOSITORY_HTTP;
+  WEBSOCKET_REPOSITORY=$WEBSOCKET_REPOSITORY_HTTP;
+fi
+
+clone "API" "$API_DIR" "$API_REPOSITORY"
+clone "UI" "$UI_DIR" "$UI_REPOSITORY"
+clone "NODEUTIL" "$NODEUTIL_DIR" "$NODEUTIL_REPOSITORY"
+clone "WEBSOCKET" "$WEBSOCKET_DIR" "$WEBSOCKET_REPOSITORY"
+
+success "All repositories successfully cloned..."
+
+title "Building the containers..."
+docker compose build
+
+success "Initialization done!"
+
+echo "Now you can use 'docker compose up' to bring all the services up and use Airsend."
+
+###########################################################

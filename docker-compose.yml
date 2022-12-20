@@ -1,0 +1,505 @@
+version: '3.5'
+services:
+  ui:
+    container_name: arisend.ui
+    build:
+      context: env/ui
+    ports:
+      - "${AIRSEND_UI_PORT:-20008}:80"
+    volumes:
+      - ./ui:/ui
+    working_dir: /ui
+    command: npm run serve -- --port 80 --host 0.0.0.0
+    logging:
+      driver: "json-file"
+      options:
+        max-file: 3
+        max-size: 1m
+
+  api_web:
+    container_name: airsend.api.web
+    build:
+      context: env/web
+    ports:
+      - "${AIRSEND_API_EXPOSED_PORT:-20000}:80"
+    volumes:
+      - ./api:/var/www/dev
+    working_dir: /var/www/dev
+    logging:
+      driver: "json-file"
+      options:
+        max-file: 3
+        max-size: 1m
+    depends_on:
+      - api_php
+
+  api_php:
+    container_name: airsend.api.php
+    build:
+      context: env/api
+    environment:
+      XDEBUG_PORT: ${XDEBUG_PORT:-20004}
+      PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/var/www/dev/vendor/bin
+      APP_ENV: ${APP_ENV:-prod}
+      LOGGER_EXTENSIONS: ${LOGGER_EXTENSIONS:-}
+      EXTERNAL_DIGEST_FREQUENCY: ${EXTERNAL_DIGEST_FREQUENCY:-}
+      GOOGLE_KEY_ID: ${GOOGLE_KEY_ID:-}
+      GOOGLE_KEY_SECRET: ${GOOGLE_KEY_SECRET:-}
+      LINKEDIN_KEY_ID: ${LINKEDIN_KEY_ID:-}
+      LINKEDIN_KEY_SECRET: ${LINKEDIN_KEY_SECRET:-}
+      APPLE_KEY_ID: ${APPLE_KEY_ID:-}
+      APPLE_TEAM_ID: ${APPLE_TEAM_ID:-}
+      APPLE_KEY_FILE_ID: ${APPLE_KEY_FILE_ID:-}
+      JWT_TTL: ${JWT_TTL:-}
+      JWT_PRIVATE_KEY_TTL: ${JWT_PRIVATE_KEY_TTL:-}
+      MAILER_DRIVER: ${MAILER_DRIVER:-}
+      MAILER_DOMAIN: ${MAILER_DOMAIN:-}
+      MAILER_RESPONSE_DOMAIN: ${MAILER_RESPONSE_DOMAIN:-}
+      AWS_SES_KEY: ${AWS_SES_KEY:-}
+      AWS_SES_SECRET: ${AWS_SES_SECRET:-}
+      MAILGUN_KEY: ${MAILGUN_KEY:-}
+      SMS_DRIVER: ${SMS_DRIVER:-}
+      TWILIO_SID: ${TWILIO_SID:-}
+      TWILIO_TOKEN: ${TWILIO_TOKEN:-}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-}
+      DISABLE_ACCOUNT_CREATION: ${DISABLE_ACCOUNT_CREATION:-}DC
+      ENABLE_COOKIE_AUTH: ${ENABLE_COOKIE_AUTH:-0}
+      SERVER_BASE_URL: ${SERVER_BASE_URL:-}
+      UI_BASE_URL: ${UI_BASE_URL:-}
+      NOTIFICATIONS_TOKEN_TTL: ${NOTIFICATIONS_TOKEN_TTL:-}
+      AIRSEND_REDIS_HOST: ${AIRSEND_REDIS_HOST:-}
+      AIRSEND_REDIS_PORT: ${AIRSEND_REDIS_PORT:-}
+      AIRSEND_DB_PORT: ${AIRSEND_DB_PORT:-}
+      AIRSEND_CLOUD_DB_HOST: ${AIRSEND_CLOUD_DB_HOST:-mysql:host=db;dbname=asclouddb;charset=utf8mb4;}
+      AIRSEND_CLOUD_DB_TESTS_HOST: ${AIRSEND_CLOUD_DB_TESTS_HOST:-mysql:host=db;dbname=asclouddb_tests;charset=utf8mb4;}
+      AIRSEND_DB_ROOT_USER: ${AIRSEND_DB_ROOT_USER:-root}
+      AIRSEND_DB_ROOT_PASSWORD: ${AIRSEND_DB_ROOT_PASSWORD:-}
+      AIRSEND_DB_ROOT_HOST: ${AIRSEND_DB_ROOT_HOST:-}
+      AIRSEND_CLOUD_DB_USER: ${AIRSEND_CLOUD_DB_USER:-asclouddbweb}
+      AIRSEND_CLOUD_DB_TESTS_USER: ${AIRSEND_CLOUD_DB_TESTS_USER:-asclouddbweb_tests}
+      AIRSEND_CLOUD_DB_PASSWORD: ${AIRSEND_CLOUD_DB_PASSWORD:-}
+      AIRSEND_FS_DB_HOST: ${AIRSEND_FS_DB_HOST:-}
+      AIRSEND_FS_DB_USER: ${AIRSEND_FS_DB_USER:-}
+      AIRSEND_FS_DB_PASSWORD: "${AIRSEND_FS_DB_PASSWORD:-}"
+      AIRSEND_KAFKA_HOST: ${AIRSEND_KAFKA_HOST:-}
+      AIRSEND_ZOOKEEPER_HOST: ${AIRSEND_ZOOKEEPER_HOST:-}
+      AIRSEND_ZOOKEEPER_PORT: ${AIRSEND_ZOOKEEPER_PORT:-}
+      AIRSEND_FS_S3_BUCKETNAME: ${AIRSEND_FS_S3_BUCKETNAME:-}
+      AIRSEND_FS_S3_KEY: ${AIRSEND_FS_S3_KEY:-}
+      AIRSEND_FS_S3_SECRET: ${AIRSEND_FS_S3_SECRET:-}
+      AIRSEND_FS_S3_REGION: ${AIRSEND_FS_S3_REGION:-}
+      NOTIFICATIONS_SENDER_SUFFIX: ${NOTIFICATIONS_SENDER_SUFFIX:-}
+      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-}
+      APP_ADMIN_EMAIL: ${APP_ADMIN_EMAIL:-}
+      APP_ADMIN_STATS_EMAIL: ${APP_ADMIN_STATS_EMAIL:-}
+      AIRSEND_DEPLOYMENT_HOSTNAME: ${AIRSEND_DEPLOYMENT_HOSTNAME:-localhost} # only for testing purposes
+      AIRSEND_WEBSOCKET_PORT: ${AIRSEND_WEBSOCKET_PORT:-20001} # only for testing purposes
+      AIRSEND_WEBSOCKET_PROTOCOL: ${AIRSEND_WEBSOCKET_PROTOCOL:-ws} # only for testing purposes
+      NOTIFICATIONS_FINALIZED_MENTIONS_TTW: ${NOTIFICATIONS_FINALIZED_MENTIONS_TTW:-10}
+      NOTIFICATIONS_FINALIZED_MESSAGES_TTW: ${NOTIFICATIONS_FINALIZED_MESSAGES_TTW:-1440}
+      APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:-}
+      SIGNUP_APPROVAL: ${SIGNUP_APPROVAL:-}
+      FCM_ENABLED: ${FCM_ENABLED:-0}
+      AIRSEND_WOPI_RELAY_URL: ${AIRSEND_WOPI_RELAY_URL:-}
+      AIRSEND_WOPI_RELAY_CLIENT_ID: ${AIRSEND_WOPI_RELAY_CLIENT_ID:-}
+      OAUTH_KEY: ${OAUTH_KEY:-}
+      WEBRTC_SERVER_ADDRESS: ${WEBRTC_SERVER_ADDRESS:-}
+      ELASTIC_HOST: ${ELASTIC_HOST:-}
+      ELASTIC_PORT: ${ELASTIC_PORT:-}
+      ELASTIC_SCHEME: ${ELASTIC_SCHEME:-}
+      ELASTIC_PATH: ${ELASTIC_PATH:-}
+      ELASTIC_USER: ${ELASTIC_USER:-}
+      ELASTIC_PASS: ${ELASTIC_PASS:-}
+      COMPILE_DI: ${COMPILE_DI:-0}
+      RECAPTCHA_ENABLED: ${RECAPTCHA_ENABLED:-}
+      RECAPTCHA_BYPASS_MOBILE: ${RECAPTCHA_BYPASS_MOBILE:-}
+      RECAPTCHA_V3_SECRET_KEY: ${RECAPTCHA_V3_SECRET_KEY:-}
+      RECAPTCHA_V2_SECRET_KEY: ${RECAPTCHA_V2_SECRET_KEY:-}
+      RECAPTCHA_V3_SITE_KEY: ${RECAPTCHA_V3_SITE_KEY:-}
+      RECAPTCHA_V2_SITE_KEY: ${RECAPTCHA_V2_SITE_KEY:-}
+      RECAPTCHA_ANDROID_SITE_KEY: ${RECAPTCHA_ANDROID_SITE_KEY:-}
+      RECAPTCHA_ANDROID_SECRET_KEY: ${RECAPTCHA_ANDROID_SECRET_KEY:-}
+      GIPHY_KEY: ${GIPHY_KEY:-}
+      NUMVERIFY_KEY: ${NUMVERIFY_KEY:-}
+      AIRSEND_BOT_ID: ${AIRSEND_BOT_ID:-91000001}
+      AIRSEND_SERVICE_ADM_USERS: ${AIRSEND_SERVICE_ADM_USERS:-91000000}
+      MAX_THUMB_SIZE_MB: ${MAX_THUMB_SIZE_MB:-}
+      AIRSEND_SERIALIZE_EVENTS: ${AIRSEND_SERIALIZE_EVENTS:-0}
+      APPLE_PUSH_URL: ${APPLE_PUSH_URL:-}
+    volumes:
+      - ./api:/var/www/dev
+      - oauth-volume:/var/www/dev/resources/oauth
+      - ./env/api/conf/docker-php-ext-xdebug.ini:/usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini:cached
+    working_dir: /var/www/dev
+    logging:
+      driver: "json-file"
+      options:
+        max-file: 3
+        max-size: 1m
+    depends_on:
+      - db
+      - kafka
+      - redis
+      - elasticsearch
+
+  cron:
+    container_name: airsend.cron
+    build:
+      context: env/cron
+    volumes:
+      - ./api:/var/www/dev:${CACHING_OPTION:-cached}
+    environment:
+      API_BASE_URI: ${API_BASE_URI:-http://web/api/v1/}
+      APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:-}
+
+
+  kafkaworkerhighpriority: # kafka worker high priority
+    build:
+      context: env/kafkaworker
+    volumes:
+      - oauth-volume:/var/www/airsend/resources/oauth
+      - ./api:/var/www/airsend:${CACHING_OPTION:-cached}
+    deploy:
+      replicas: ${AIRSEND_HIGHPRIO_WORKER_COUNT:-2}
+    restart: always
+    environment:
+      PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/var/www/dev/vendor/bin
+      APP_ENV: ${APP_ENV:-prod}
+      APP_AVATAR: worker
+      LOGGER_EXTENSIONS: ${LOGGER_EXTENSIONS:-}
+      EXTERNAL_DIGEST_FREQUENCY: ${EXTERNAL_DIGEST_FREQUENCY:-}
+      GOOGLE_KEY_ID: ${GOOGLE_KEY_ID:-}
+      GOOGLE_KEY_SECRET: ${GOOGLE_KEY_SECRET:-}
+      LINKEDIN_KEY_ID: ${LINKEDIN_KEY_ID:-}
+      LINKEDIN_KEY_SECRET: ${LINKEDIN_KEY_SECRET:-}
+      APPLE_KEY_ID: ${APPLE_KEY_ID:-}
+      APPLE_TEAM_ID: ${APPLE_TEAM_ID:-}
+      APPLE_KEY_FILE_ID: ${APPLE_KEY_FILE_ID:-}
+      JWT_TTL: ${JWT_TTL:-}
+      JWT_PRIVATE_KEY_TTL: ${JWT_PRIVATE_KEY_TTL:-}
+      MAILER_DRIVER: ${MAILER_DRIVER:-}
+      MAILER_DOMAIN: ${MAILER_DOMAIN:-}
+      MAILER_RESPONSE_DOMAIN: ${MAILER_RESPONSE_DOMAIN:-}
+      AWS_SES_KEY: ${AWS_SES_KEY:-}
+      AWS_SES_SECRET: ${AWS_SES_SECRET:-}
+      MAILGUN_KEY: ${MAILGUN_KEY:-}
+      SMS_DRIVER: ${SMS_DRIVER:-}
+      TWILIO_SID: ${TWILIO_SID:-}
+      TWILIO_TOKEN: ${TWILIO_TOKEN:-}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-}
+      DISABLE_ACCOUNT_CREATION: ${DISABLE_ACCOUNT_CREATION:-}DC
+      ENABLE_COOKIE_AUTH: ${ENABLE_COOKIE_AUTH:-0}
+      SERVER_BASE_URL: ${SERVER_BASE_URL:-}
+      NOTIFICATIONS_TOKEN_TTL: ${NOTIFICATIONS_TOKEN_TTL:-}
+      AIRSEND_REDIS_HOST: ${AIRSEND_REDIS_HOST:-}
+      AIRSEND_REDIS_PORT: ${AIRSEND_REDIS_PORT:-}
+      AIRSEND_DB_PORT: ${AIRSEND_DB_PORT:-3306}
+      AIRSEND_CLOUD_DB_HOST: ${AIRSEND_CLOUD_DB_HOST:-mysql:host=db;dbname=asclouddb;charset=utf8mb4;}
+      AIRSEND_CLOUD_DB_ADDRESS: ${AIRSEND_CLOUD_DB_ADDRESS:-db}
+      AIRSEND_CLOUD_DB_TESTS_HOST: ${AIRSEND_CLOUD_DB_TESTS_HOST:-mysql:host=db;dbname=asclouddb_tests;charset=utf8mb4;}
+      AIRSEND_DB_ROOT_USER: ${AIRSEND_DB_ROOT_USER:-root}
+      AIRSEND_DB_ROOT_PASSWORD: ${AIRSEND_DB_ROOT_PASSWORD:-}
+      AIRSEND_DB_ROOT_HOST: ${AIRSEND_DB_ROOT_HOST:-}
+      AIRSEND_CLOUD_DB_USER: ${AIRSEND_CLOUD_DB_USER:-asclouddbweb}
+      AIRSEND_CLOUD_DB_TESTS_USER: ${AIRSEND_CLOUD_DB_TESTS_USER:-asclouddbweb_tests}
+      AIRSEND_CLOUD_DB_PASSWORD: ${AIRSEND_CLOUD_DB_PASSWORD:-}
+      AIRSEND_FS_DB_HOST: ${AIRSEND_FS_DB_HOST:-}
+      AIRSEND_FS_DB_USER: ${AIRSEND_FS_DB_USER:-}
+      AIRSEND_FS_DB_PASSWORD: "${AIRSEND_FS_DB_PASSWORD:-}"
+      AIRSEND_KAFKA_HOST: ${AIRSEND_KAFKA_HOST:-}
+      AIRSEND_ZOOKEEPER_HOST: ${AIRSEND_ZOOKEEPER_HOST:-}
+      AIRSEND_ZOOKEEPER_PORT: ${AIRSEND_ZOOKEEPER_PORT:-}
+      AIRSEND_FS_S3_BUCKETNAME: ${AIRSEND_FS_S3_BUCKETNAME:-}
+      AIRSEND_FS_S3_KEY: ${AIRSEND_FS_S3_KEY:-}
+      AIRSEND_FS_S3_SECRET: ${AIRSEND_FS_S3_SECRET:-}
+      AIRSEND_FS_S3_REGION: ${AIRSEND_FS_S3_REGION:-}
+      NOTIFICATIONS_SENDER_SUFFIX: ${NOTIFICATIONS_SENDER_SUFFIX:-}
+      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-}
+      APP_ADMIN_EMAIL: ${APP_ADMIN_EMAIL:-}
+      APP_ADMIN_STATS_EMAIL: ${APP_ADMIN_STATS_EMAIL:-}
+      AIRSEND_DEPLOYMENT_HOSTNAME: ${AIRSEND_DEPLOYMENT_HOSTNAME:-localhost} # only for testing purposes
+      AIRSEND_WEBSOCKET_PORT: ${AIRSEND_WEBSOCKET_PORT:-20001} # only for testing purposes
+      AIRSEND_WEBSOCKET_PROTOCOL: ${AIRSEND_WEBSOCKET_PROTOCOL:-ws} # only for testing purposes
+      NOTIFICATIONS_FINALIZED_MENTIONS_TTW: ${NOTIFICATIONS_FINALIZED_MENTIONS_TTW:-10}
+      NOTIFICATIONS_FINALIZED_MESSAGES_TTW: ${NOTIFICATIONS_FINALIZED_MESSAGES_TTW:-1440}
+      APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:-}
+      SIGNUP_APPROVAL: ${SIGNUP_APPROVAL:-}
+      FCM_ENABLED: ${FCM_ENABLED:-0}
+      AIRSEND_WOPI_RELAY_URL: ${AIRSEND_WOPI_RELAY_URL:-}
+      AIRSEND_WOPI_RELAY_CLIENT_ID: ${AIRSEND_WOPI_RELAY_CLIENT_ID:-}
+      OAUTH_KEY: ${OAUTH_KEY:-}
+      WEBRTC_SERVER_ADDRESS: ${WEBRTC_SERVER_ADDRESS:-}
+      ELASTIC_HOST: ${ELASTIC_HOST:-}
+      ELASTIC_PORT: ${ELASTIC_PORT:-}
+      ELASTIC_SCHEME: ${ELASTIC_SCHEME:-}
+      ELASTIC_PATH: ${ELASTIC_PATH:-}
+      ELASTIC_USER: ${ELASTIC_USER:-}
+      ELASTIC_PASS: ${ELASTIC_PASS:-}
+      COMPILE_DI: ${COMPILE_DI:-0}
+      RECAPTCHA_ENABLED: ${RECAPTCHA_ENABLED:-}
+      RECAPTCHA_BYPASS_MOBILE: ${RECAPTCHA_BYPASS_MOBILE:-}
+      RECAPTCHA_V3_SECRET_KEY: ${RECAPTCHA_V3_SECRET_KEY:-}
+      RECAPTCHA_V2_SECRET_KEY: ${RECAPTCHA_V2_SECRET_KEY:-}
+      RECAPTCHA_V3_SITE_KEY: ${RECAPTCHA_V3_SITE_KEY:-}
+      RECAPTCHA_V2_SITE_KEY: ${RECAPTCHA_V2_SITE_KEY:-}
+      RECAPTCHA_ANDROID_SITE_KEY: ${RECAPTCHA_ANDROID_SITE_KEY:-}
+      RECAPTCHA_ANDROID_SECRET_KEY: ${RECAPTCHA_ANDROID_SECRET_KEY:-}
+      GIPHY_KEY: ${GIPHY_KEY:-}
+      NUMVERIFY_KEY: ${NUMVERIFY_KEY:-}
+      TOPIC: as_parallel_bg_queue
+      PRIORITY: high
+      AIRSEND_BOT_ID: ${AIRSEND_BOT_ID:-91000001}
+      AIRSEND_SERVICE_ADM_USERS: ${AIRSEND_SERVICE_ADM_USERS:-91000000}
+      MAX_THUMB_SIZE_MB: ${MAX_THUMB_SIZE_MB:-}
+      APPLE_PUSH_URL: ${APPLE_PUSH_URL:-}
+    depends_on:
+      - kafka
+      - redis
+      - db
+
+  kafkaworkerlowpriority: # kafka worker low priority
+    build:
+      context: env/kafkaworker
+    volumes:
+      - oauth-volume:/var/www/airsend/resources/oauth
+      - ./api:/var/www/airsend:${CACHING_OPTION:-cached}
+    deploy:
+      replicas: ${AIRSEND_LOWPRIO_WORKER_COUNT:-2}
+    restart: always
+    environment:
+      PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/var/www/dev/vendor/bin
+      APP_ENV: ${APP_ENV:-prod}
+      APP_AVATAR: worker
+      LOGGER_EXTENSIONS: ${LOGGER_EXTENSIONS:-}
+      EXTERNAL_DIGEST_FREQUENCY: ${EXTERNAL_DIGEST_FREQUENCY:-}
+      GOOGLE_KEY_ID: ${GOOGLE_KEY_ID:-}
+      GOOGLE_KEY_SECRET: ${GOOGLE_KEY_SECRET:-}
+      LINKEDIN_KEY_ID: ${LINKEDIN_KEY_ID:-}
+      LINKEDIN_KEY_SECRET: ${LINKEDIN_KEY_SECRET:-}
+      APPLE_KEY_ID: ${APPLE_KEY_ID:-}
+      APPLE_TEAM_ID: ${APPLE_TEAM_ID:-}
+      APPLE_KEY_FILE_ID: ${APPLE_KEY_FILE_ID:-}
+      JWT_TTL: ${JWT_TTL:-}
+      JWT_PRIVATE_KEY_TTL: ${JWT_PRIVATE_KEY_TTL:-}
+      MAILER_DRIVER: ${MAILER_DRIVER:-}
+      MAILER_DOMAIN: ${MAILER_DOMAIN:-}
+      MAILER_RESPONSE_DOMAIN: ${MAILER_RESPONSE_DOMAIN:-}
+      AWS_SES_KEY: ${AWS_SES_KEY:-}
+      AWS_SES_SECRET: ${AWS_SES_SECRET:-}
+      MAILGUN_KEY: ${MAILGUN_KEY:-}
+      SMS_DRIVER: ${SMS_DRIVER:-}
+      TWILIO_SID: ${TWILIO_SID:-}
+      TWILIO_TOKEN: ${TWILIO_TOKEN:-}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-}
+      DISABLE_ACCOUNT_CREATION: ${DISABLE_ACCOUNT_CREATION:-}DC
+      ENABLE_COOKIE_AUTH: ${ENABLE_COOKIE_AUTH:-0}
+      SERVER_BASE_URL: ${SERVER_BASE_URL:-}
+      NOTIFICATIONS_TOKEN_TTL: ${NOTIFICATIONS_TOKEN_TTL:-}
+      AIRSEND_REDIS_HOST: ${AIRSEND_REDIS_HOST:-}
+      AIRSEND_REDIS_PORT: ${AIRSEND_REDIS_PORT:-}
+      AIRSEND_DB_PORT: ${AIRSEND_DB_PORT:-3306}
+      AIRSEND_CLOUD_DB_HOST: ${AIRSEND_CLOUD_DB_HOST:-mysql:host=db;dbname=asclouddb;charset=utf8mb4;}
+      AIRSEND_CLOUD_DB_ADDRESS: ${AIRSEND_CLOUD_DB_ADDRESS:-db}
+      AIRSEND_CLOUD_DB_TESTS_HOST: ${AIRSEND_CLOUD_DB_TESTS_HOST:-mysql:host=db;dbname=asclouddb_tests;charset=utf8mb4;}
+      AIRSEND_DB_ROOT_USER: ${AIRSEND_DB_ROOT_USER:-root}
+      AIRSEND_DB_ROOT_PASSWORD: ${AIRSEND_DB_ROOT_PASSWORD:-}
+      AIRSEND_DB_ROOT_HOST: ${AIRSEND_DB_ROOT_HOST:-}
+      AIRSEND_CLOUD_DB_USER: ${AIRSEND_CLOUD_DB_USER:-asclouddbweb}
+      AIRSEND_CLOUD_DB_TESTS_USER: ${AIRSEND_CLOUD_DB_TESTS_USER:-asclouddbweb_tests}
+      AIRSEND_CLOUD_DB_PASSWORD: ${AIRSEND_CLOUD_DB_PASSWORD:-}
+      AIRSEND_FS_DB_HOST: ${AIRSEND_FS_DB_HOST:-}
+      AIRSEND_FS_DB_USER: ${AIRSEND_FS_DB_USER:-}
+      AIRSEND_FS_DB_PASSWORD: "${AIRSEND_FS_DB_PASSWORD:-}"
+      AIRSEND_KAFKA_HOST: ${AIRSEND_KAFKA_HOST:-}
+      AIRSEND_ZOOKEEPER_HOST: ${AIRSEND_ZOOKEEPER_HOST:-}
+      AIRSEND_ZOOKEEPER_PORT: ${AIRSEND_ZOOKEEPER_PORT:-}
+      AIRSEND_FS_S3_BUCKETNAME: ${AIRSEND_FS_S3_BUCKETNAME:-}
+      AIRSEND_FS_S3_KEY: ${AIRSEND_FS_S3_KEY:-}
+      AIRSEND_FS_S3_SECRET: ${AIRSEND_FS_S3_SECRET:-}
+      AIRSEND_FS_S3_REGION: ${AIRSEND_FS_S3_REGION:-}
+      NOTIFICATIONS_SENDER_SUFFIX: ${NOTIFICATIONS_SENDER_SUFFIX:-}
+      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-}
+      APP_ADMIN_EMAIL: ${APP_ADMIN_EMAIL:-}
+      APP_ADMIN_STATS_EMAIL: ${APP_ADMIN_STATS_EMAIL:-}
+      AIRSEND_DEPLOYMENT_HOSTNAME: ${AIRSEND_DEPLOYMENT_HOSTNAME:-localhost} # only for testing purposes
+      AIRSEND_WEBSOCKET_PORT: ${AIRSEND_WEBSOCKET_PORT:-20001} # only for testing purposes
+      AIRSEND_WEBSOCKET_PROTOCOL: ${AIRSEND_WEBSOCKET_PROTOCOL:-ws} # only for testing purposes
+      NOTIFICATIONS_FINALIZED_MENTIONS_TTW: ${NOTIFICATIONS_FINALIZED_MENTIONS_TTW:-10}
+      NOTIFICATIONS_FINALIZED_MESSAGES_TTW: ${NOTIFICATIONS_FINALIZED_MESSAGES_TTW:-1440}
+      APP_INTERNAL_AUTH_TOKEN: ${APP_INTERNAL_AUTH_TOKEN:-}
+      SIGNUP_APPROVAL: ${SIGNUP_APPROVAL:-}
+      FCM_ENABLED: ${FCM_ENABLED:-0}
+      AIRSEND_WOPI_RELAY_URL: ${AIRSEND_WOPI_RELAY_URL:-}
+      AIRSEND_WOPI_RELAY_CLIENT_ID: ${AIRSEND_WOPI_RELAY_CLIENT_ID:-}
+      OAUTH_KEY: ${OAUTH_KEY:-}
+      WEBRTC_SERVER_ADDRESS: ${WEBRTC_SERVER_ADDRESS:-}
+      ELASTIC_HOST: ${ELASTIC_HOST:-}
+      ELASTIC_PORT: ${ELASTIC_PORT:-}
+      ELASTIC_SCHEME: ${ELASTIC_SCHEME:-}
+      ELASTIC_PATH: ${ELASTIC_PATH:-}
+      ELASTIC_USER: ${ELASTIC_USER:-}
+      ELASTIC_PASS: ${ELASTIC_PASS:-}
+      COMPILE_DI: ${COMPILE_DI:-0}
+      RECAPTCHA_ENABLED: ${RECAPTCHA_ENABLED:-}
+      RECAPTCHA_BYPASS_MOBILE: ${RECAPTCHA_BYPASS_MOBILE:-}
+      RECAPTCHA_V3_SECRET_KEY: ${RECAPTCHA_V3_SECRET_KEY:-}
+      RECAPTCHA_V2_SECRET_KEY: ${RECAPTCHA_V2_SECRET_KEY:-}
+      RECAPTCHA_V3_SITE_KEY: ${RECAPTCHA_V3_SITE_KEY:-}
+      RECAPTCHA_V2_SITE_KEY: ${RECAPTCHA_V2_SITE_KEY:-}
+      RECAPTCHA_ANDROID_SITE_KEY: ${RECAPTCHA_ANDROID_SITE_KEY:-}
+      RECAPTCHA_ANDROID_SECRET_KEY: ${RECAPTCHA_ANDROID_SECRET_KEY:-}
+      GIPHY_KEY: ${GIPHY_KEY:-}
+      NUMVERIFY_KEY: ${NUMVERIFY_KEY:-}
+      TOPIC: as_parallel_bg_queue_low_priority
+      PRIORITY: low
+      AIRSEND_BOT_ID: ${AIRSEND_BOT_ID:-91000001}
+      AIRSEND_SERVICE_ADM_USERS: ${AIRSEND_SERVICE_ADM_USERS:-91000000}
+      MAX_THUMB_SIZE_MB: ${MAX_THUMB_SIZE_MB:-}
+      APPLE_PUSH_URL: ${APPLE_PUSH_URL:-}
+    depends_on:
+      - kafka
+      - redis
+      - db
+
+  websocket:
+    container_name: airsend.websocket
+    build:
+      context: env/websocket
+    volumes:
+      - ./websocket:/server:${CACHING_OPTION:-cached}
+    environment:
+      NODE_ENV: ${APP_ENV:-prod}
+      AIRSEND_DEPLOYMENT_HOSTNAME: ${AIRSEND_DEPLOYMENT_HOSTNAME:-localhost}
+      AIRSEND_WEBSOCKET_PORT: ${AIRSEND_WEBSOCKET_PORT:-20001}
+      AIRSEND_KAFKA_HOST: ${AIRSEND_KAFKA_HOST:-kafka:9092}
+      AIRSEND_WEBSOCKET_PROTOCOL: ${AIRSEND_WEBSOCKET_PROTOCOL:-ws}
+      AIRSEND_WEBSOCKET_IPHOST_MAP: ${AIRSEND_WEBSOCKET_IPHOST_MAP:-127.0.0.1:localhost}
+    ports:
+      - target: 9001
+        published: 9001
+        protocol: tcp
+        mode: host
+    restart: always
+    depends_on:
+      - zookeeper
+      - kafka
+
+#  webrtc:
+#    build:
+#      context: env/common/webrtc
+#    volumes:
+#      - ./server/webrtc:/server:${CACHING_OPTION:-cached}
+#      - ./server/websocket/ssl:/server/ssl
+#    environment:
+#      AIRSEND_DEPLOYMENT_HOSTNAME: ${AIRSEND_DEPLOYMENT_HOSTNAME:-localhost}
+#      AIRSEND_WEBRTC_PORT: ${AIRSEND_WEBRTC_PORT:-9002}
+#      AIRSEND_REDIS_HOST: ${AIRSEND_REDIS_HOST:-redis}
+#      AIRSEND_REDIS_PORT: ${AIRSEND_REDIS_PORT:-6379}
+#      AIRSEND_API_ENDPOINT: ${AIRSEND_API_ENDPOINT:-http://web}
+#      AIRSEND_WEBRTC_MIN_PORT: ${AIRSEND_WEBRTC_MIN_PORT:-40000}
+#      AIRSEND_WEBRTC_MAX_PORT: ${AIRSEND_WEBRTC_MAX_PORT:-40030}
+#      AIRSEND_WEBRTC_LOG_LEVEL: ${AIRSEND_WEBRTC_LOG_LEVEL:-warn}
+#    ports:
+#      - target: 9002
+#        published: 9002
+#        protocol: tcp
+#        mode: host
+#      - "40000-40030:40000-40030/udp"
+#    restart: on-failure
+#    depends_on:
+#      - redis
+
+  nodeutil:
+    container_name: airsend.nodeutil
+    build:
+      context: env/nodeutil
+    volumes:
+      - ./nodeutil:/server:${CACHING_OPTION:-cached}
+    environment:
+      NODE_ENV: ${APP_ENV:-prod}
+      AIRSEND_KAFKA_HOST: ${AIRSEND_KAFKA_HOST:-}
+      AIRSEND_DEPLOYMENT_HOSTNAME: ${AIRSEND_DEPLOYMENT_HOSTNAME:-localhost}
+      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-}
+      FCM_ENABLED: ${FCM_ENABLED:-0}
+
+
+  db:
+    container_name: airsend.db
+    image: mysql/mysql-server
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: '${AIRSEND_DB_ROOT_PASSWORD:-root}'
+      MYSQL_ROOT_HOST: '%'
+    ports:
+      - '${AIRSEND_DB_EXPOSED_PORT:-20002}:3306'
+    volumes:
+      - database-volume:/var/lib/mysql
+      - ./env/db/conf.d:/etc/mysql/conf.d:${CACHING_OPTION:-cached}
+
+  redis:
+    container_name: airsend.redis
+    image: redis:5
+    ports:
+      - '${AIRSEND_REDIS_PORT:-6379}:6379'
+
+  zookeeper:
+    container_name: airsend.zookeeper
+    image: wurstmeister/zookeeper
+    ports:
+      - "${AIRSEND_ZOOKEEPER_PORT:-2181}:2181"
+
+  kafka:
+    container_name: airsend.kafka
+    build:
+      context: env/kafka
+    volumes:
+      - ./kafka:/stats
+    environment:
+      BROKER_ID: -1
+      HOSTNAME_COMMAND: ${HOSTNAME_COMMAND:-echo localhost}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://:9092,OUTSIDE://_{HOSTNAME_COMMAND}:9094
+      KAFKA_LISTENERS: INSIDE://:9092,OUTSIDE://:9094
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_ADVERTISED_HOST_NAME: _{HOSTNAME_COMMAND}
+      KAFKA_ZOOKEEPER_CONNECT: ${AIRSEND_ZOOKEEPER_HOST:-zookeeper:2181}
+      KAFKA_NUM_PARTITIONS: ${KAFKA_NUM_PARTITIONS:-10} # for now we just ensure more partitions then consumers as default. That can be fine tunned.
+      KAFKA_DEFAULT_REPLICATION_FACTOR: ${KAFKA_DEFAULT_REPLICATION_FACTOR:-1}
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: ${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR:-1}
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: ${KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS:-3000}
+      KAFKA_LOG_RETENTION_BYTES: 536870912
+      KAFKA_LOG_RETENTION_DAYS: 1
+    restart: on-failure
+
+  elasticsearch:
+    container_name: airsend.elasticsearch
+    image: elasticsearch:7.8.0
+    ports:
+      - "${ELASTICSEARCH_QUERY_PORT:-9200}:9200"
+      - "${ELASTICSEARCH_CLUSTER_PORT:-9300}:9300"
+    environment:
+      discovery.type: single-node
+    volumes:
+      - elasticsearch-volume:/usr/share/elasticsearch/data
+
+  swagger:
+    container_name: airsend.swagger
+    image: swaggerapi/swagger-ui
+    ports:
+      - "${SWAGGER_PORT:-82}:8080"
+    environment:
+      URL: swagger.yaml
+    volumes:
+      - ./api/doc/airsend_openapi30.yaml:/usr/share/nginx/html/swagger.yaml:${CACHING_OPTION:-cached}
+
+volumes:
+  database-volume:
+    name: airsend.database-volume
+    driver: local
+  oauth-volume:
+    name: airsend.oauth-volume
+    driver: local
+  elasticsearch-volume:
+    name: airsend.elasticsearch-volume
+    driver: local

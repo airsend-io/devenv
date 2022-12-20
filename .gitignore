@@ -1,0 +1,14 @@
+.idea
+docker-compose.override.yml
+.env
+/server/websocket/logs/
+/server/nodeutil/logs/
+node_modules
+.DS_Store
+api
+kafka
+nodeutil
+tools
+ui
+webrtc
+websocket

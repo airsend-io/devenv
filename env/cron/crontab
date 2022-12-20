@@ -1,0 +1,2 @@
+* * * * * . /cronenv; export API_BASE_URI APP_INTERNAL_AUTH_TOKEN; /usr/local/bin/php /var/www/dev/resources/cron/cron.php >/proc/1/fd/1 2>/proc/1/fd/2
+# Don't remove the empty line at the end of this file. It is required to run the cron job
