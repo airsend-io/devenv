@@ -34,7 +34,7 @@ RUN pecl install -o -f zookeeper && \
     docker-php-ext-enable zookeeper
 
 # install xdebug
-RUN pecl install xdebug; \
+RUN pecl install xdebug-2.9.0; \
     docker-php-ext-enable xdebug;
 
 # install mailparse
