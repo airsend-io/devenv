@@ -5,10 +5,10 @@ docker-compose.override.yml
 /server/nodeutil/logs/
 node_modules
 .DS_Store
-api
-kafka
-nodeutil
-tools
-ui
-webrtc
-websocket
+/api
+/kafka
+/nodeutil
+/tools
+/ui
+/webrtc
+/websocket
