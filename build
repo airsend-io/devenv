@@ -54,7 +54,7 @@ clone () {
   mkdir -p "$DIR" &>/dev/null
 
   # If there is a repository inside the folder, skip the cloning process.
-  if cd "$DIR" && git rev-parse --is-inside-work-tree; then
+  if [ -d "$DIR/.git" ]; then
     title "$NAME repository is already setup";
   else
 
@@ -167,7 +167,7 @@ fi
 
 title "Checking github.com ssh config (you may have to enter your private key password to unlock it)..."
 
-if ssh -T git@github.com 2>&1 | grep "You've successfully authenticated" > /dev/null; then
+if ssh -T git@github.com 2>&1 | grep "You've successfully authenticated" > /dev/null 2>/dev/null; then
   echo "Cloning using ssh (best option)..."
   API_REPOSITORY=$API_REPOSITORY_SSH;
   UI_REPOSITORY=$UI_REPOSITORY_SSH;

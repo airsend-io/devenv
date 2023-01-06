@@ -154,13 +154,14 @@ services:
 
 
   kafkaworkerhighpriority: # kafka worker high priority
+    container_name: airsend.kafka.worker.high
     build:
       context: env/kafkaworker
     volumes:
       - oauth-volume:/var/www/airsend/resources/oauth
       - ./api:/var/www/airsend:${CACHING_OPTION:-cached}
-    deploy:
-      replicas: ${AIRSEND_HIGHPRIO_WORKER_COUNT:-2}
+#    deploy:
+#      replicas: 1
     restart: always
     environment:
       PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/var/www/dev/vendor/bin
@@ -258,13 +259,14 @@ services:
       - db
 
   kafkaworkerlowpriority: # kafka worker low priority
+    container_name: airsend.kafka.worker.high
     build:
       context: env/kafkaworker
     volumes:
       - oauth-volume:/var/www/airsend/resources/oauth
       - ./api:/var/www/airsend:${CACHING_OPTION:-cached}
-    deploy:
-      replicas: ${AIRSEND_LOWPRIO_WORKER_COUNT:-2}
+#    deploy:
+#      replicas: 1
     restart: always
     environment:
       PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/var/www/dev/vendor/bin
